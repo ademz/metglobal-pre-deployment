@@ -66,8 +66,7 @@ def get_jira_issues():
         print_out('Invalid JIRA credentials', Color.FAIL)
         sys.exit()
 
-    issues = jira.search_issues(search_key)
-    return issues
+    return jira.search_issues(search_key)
 
 
 def delete_branch(branch, is_remote=False):
@@ -92,9 +91,7 @@ def delete_branch(branch, is_remote=False):
 def prepare_staging():
     git.checkout('master')
 
-    issues = get_jira_issues()
-    for issue in issues:
-        delete_branch(issue.key)
+    delete_local_branches()
 
     git.fetch('--all')
     git.pull('origin', 'master')
@@ -105,7 +102,7 @@ def prepare_staging():
 
     git.checkout('HEAD', b='staging')
     print_out('Checkout staging')
-    for issue in issues:
+    for issue in get_jira_issues():
         git.merge('origin/{}'.format(issue.key))
         print_out('%s merged' % issue.key)
 
@@ -128,7 +125,7 @@ def create_version(version, rc_version):
 
 
 def create_tag(version, rc_version, is_main_version=False):
-    tag = '%src%s' % (version, rc_version)
+    tag = '{}rc{}'.format(version, rc_version)
     if is_main_version:
         tag = version
 
@@ -136,9 +133,9 @@ def create_tag(version, rc_version, is_main_version=False):
     try:
         tag_message = config.get('PROJECT', 'tag_message')
         repo.create_tag(tag, message=tag_message.format(tag))
-        print_out('Created tag: %s rc%s' % (version, rc_version))
+        print_out('Created tag: {} rc{}'.format(version, rc_version))
     except Exception as error:
-        print_out('Tag cannot be created %s' % error, Color.FAIL)
+        print_out('Tag cannot be created {}'.format(error), Color.FAIL)
         sys.exit()
 
 
@@ -147,11 +144,11 @@ def push_tag(version, rc_version):
     if decision == 'Y':
         create_tag(version, rc_version, True)
         repo.remotes.origin.push(version)
-        print_out('Pushed %s' % version)
+        print_out('Pushed {}'.format(version))
 
-    tag = '%src%s' % (version, rc_version)
+    tag = '%src%s'.format(version, rc_version)
     repo.remotes.origin.push(tag)
-    print_out('Pushed %s' % tag)
+    print_out('Pushed {}'.format(tag))
 
 
 def delete_local_branches():
